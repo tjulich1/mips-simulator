@@ -34,7 +34,7 @@ public class MipsComputer {
 		this.nextInstruction = 0;
 		this.programCounter = 0;
 		for (int i = 0; i < 32; i++) {
-			this.registers[i] = new BitString();
+			this.registers[i] = new BitString(WORD_LENGTH);
 		}
 	}
 	
@@ -52,11 +52,14 @@ public class MipsComputer {
 		} else {
 			this.instructionMemory[this.nextInstruction] = theInstruction;
 			this.nextInstruction++;
+			//System.out.println("First bits: " + theInstruction.subString(0, 7));
+			//System.out.println("Last bits: " + theInstruction.subString(24, 31));
 		}
 	}
 	
 	/**
-	*
+	* Method that is called to execute all instructions that have been loaded,
+	* starting from zero.
 	**/
 	public void execute() {
 		for (int i = 0; i < this.MAX_INSTRUCTIONS; i++) {
@@ -66,7 +69,78 @@ public class MipsComputer {
 			if (currentInstruction == null) {
 				break;
 			}
-			System.out.println("DEBUG: " + currentInstruction);
+			BitString opCodeSubString = currentInstruction.subString(0, 5);
+			int opCode = opCodeSubString.toDecimal();
+			
+			// Instruction is an R type instruction.
+			if (opCode == 0) {
+				this.handleRType(currentInstruction);
+			} else {
+				switch(opCode) {
+					default:
+						System.out.println("Unknown Opcode");
+						break;
+				}
+			}
+			
+		}
+	}
+	
+	/**
+	* Method used to set the given register to the given value.
+	* 
+	* @param int registerNumber The register to write to.
+	* @param BitString value The value to write to the register.
+	**/
+	public void setRegister(final int registerNumber, final BitString value) {
+		if (registerNumber < 0 || registerNumber > 31) {
+			System.out.println("Invalid register number");
+		} else {
+			this.registers[registerNumber] = value;
+		}
+	}
+	
+	/**
+	* Method used to determine the function of the instruction,
+	* and pass to the functions handler.
+	*
+	* @param BitString theInstruction The instruction to find function of.
+	**/
+	public void handleRType(final BitString theInstruction) {
+		final BitString theFuncCodeSubString = theInstruction.subString(26, 31);
+		final int theFuncCode = theFuncCodeSubString.toDecimal();
+		switch(theFuncCode) {
+			case 32:
+				this.add(theInstruction);
+				break;
+			default:
+				System.out.println("Unknown instruction");
+				break;
+		}
+		
+		
+	}
+	
+	/**
+	* Method used to take values from the 2 source registers:
+	* rs: theInstruction[6:10] (inclusive)
+	* rt: theInstruction[11:15] (inclusive)
+	* and write the result to the destination register:
+	* rd: theInstruction[16:20] (inclusive)
+	*
+	* @param theInstruction The add instruction in binary.
+	**/
+	private void add(final BitString theInstruction) {
+		int sourceOne = theInstruction.subString(6, 10).toDecimal();
+		int sourceTwo = theInstruction.subString(11, 15).toDecimal();
+		int dest      = theInstruction.subString(16, 20).toDecimal();
+		
+		if (sourceOne > 31 || sourceTwo > 31 || dest > 31 
+				|| sourceOne < 0 || sourceTwo < 0 || dest < 0) 
+		{
+			System.out.println("Register number out of bounds");
+		} else {
+			this.registers[dest] = registers[sourceOne].add(registers[sourceTwo]);
 		}
 	}
 	

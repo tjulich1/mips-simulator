@@ -1,5 +1,6 @@
 import java.lang.StringBuilder;
-
+import java.util.Arrays;
+import java.util.Collections;
 /**
 * Class representing a string of bits (32 in this use case), used to 
 * encode data for Java Mips Simulator.
@@ -9,7 +10,7 @@ import java.lang.StringBuilder;
 **/
 public class BitString {
 
-	public static final int LENGTH = 32;
+	private int length;
 
 	/** Array containing "0" or "1"'s, used to encode binary instructions. **/
 	private char[] theBits;
@@ -17,9 +18,10 @@ public class BitString {
 	/**
 	* Constructor for new empty bit string (initialized to all zeros).
 	**/
-	public BitString() {
-		this.theBits = new char[this.LENGTH];
-		for (int i = 0; i < this.LENGTH; i++) {
+	public BitString(final int length) {
+		this.length = length;
+		this.theBits = new char[this.length];
+		for (int i = 0; i < this.length; i++) {
 			this.theBits[i] = '0';
 		}
 	}
@@ -29,13 +31,21 @@ public class BitString {
 	*
 	* @param value The value to encode in the BitString.
 	**/
-	public BitString(final int value) {
-		this.theBits = new char[this.LENGTH];
-		for (int i = 0; i < this.LENGTH; i++) {
+	public BitString(final int length, final int value) {
+		this.length = length;
+		this.theBits = new char[this.length];
+		for (int i = 0; i < this.length; i++) {
 			this.theBits[i] = '0';
 		}
 		this.set(value);
 	}
+	
+	/**
+	* Method used to get the length of this bit string.
+	*
+	* 
+	**/
+	public int getLength() { return this.length; }
 	
 	/**
 	* Method used to retrieve the char[] representing the bits of 
@@ -54,10 +64,32 @@ public class BitString {
 	* @return New BitString encoded with the bits contained in the 
 	*  parameter.
 	**/
-	public static BitString fromBits(final char[] bits) {
-		final BitString newBitString = new BitString();
+	public static BitString fromBits(final int length, final char[] bits) {
+		final BitString newBitString = new BitString(length);
 		newBitString.setBits(bits);
 		return newBitString;
+	}
+	
+	/**
+	* Method used to create a new BitString from the substring of another BitString.
+	* Since Mips stores integers using Big Endian, index 0 returns the most significant
+	* bit, while index length-1 will return the least significant bit.
+	*
+	* @param int start The index of the first bit to take.
+	* @param int end The index of the last bit to take.
+	* @return BitString the given substring.
+	**/
+	public BitString subString(final int start, final int end) {
+		//System.out.println("Start: " + start);
+		//System.out.println("End: " + end);
+		//System.out.println("Length: " + length);
+		if (start < 0 || end >= this.length || end < start) {
+			System.out.println("Unable to create substring using indices given");
+			return new BitString(0);
+		}
+		char[] newBits = new char[end-start+1];
+		System.arraycopy(this.theBits, start, newBits, 0, end-start+1);
+		return BitString.fromBits(newBits.length, newBits);
 	}
 	
 	/**
@@ -68,10 +100,12 @@ public class BitString {
 	* @param char[] bits The array of chars (bits) to set this BitStrings bits to.
 	**/
 	public void setBits(final char[] bits) {
-		if (bits.length != this.LENGTH) {
+		if (bits.length != this.length) {
 			System.out.println("Unable to set bits: given char array is of invalid size");
+			System.out.println(bits);
+			System.out.println(length);
 		} else {
-			for (int i = 0; i < this.LENGTH; i++) {
+			for (int i = 0; i < this.length; i++) {
 				char currentBit = bits[i];
 				if (currentBit == '0' || currentBit == '1') {
 					this.theBits[i] = currentBit;
@@ -108,7 +142,7 @@ public class BitString {
 	**/
 	public BitString add(final BitString theOther) {
 		final int valueToEncode = this.toDecimal() + theOther.toDecimal();
-		return new BitString(valueToEncode);
+		return new BitString(32, valueToEncode);
 	}
 	
 	/**
@@ -125,7 +159,7 @@ public class BitString {
 	@Override
 	public String toString() {
 		final StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < length/8; i++) {
 			for (int j = i * 8; j < i*8+8; j++) {
 				sb.append(this.theBits[j]);
 			}

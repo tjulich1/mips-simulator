@@ -12,23 +12,24 @@ public class BitStringTests {
 	
 	@Before
 	public void setup() {
-		this.bitString = new BitString();
+		this.bitString = new BitString(32);
 	}
 	
 	@Test
-	public void testDefaultConstructor() {
+	public void testConstructorWithLength() {
 		char[] expectedBitString = { '0', '0', '0', '0', '0', '0', '0', '0',
 									 '0', '0', '0', '0', '0', '0', '0', '0',
 									 '0', '0', '0', '0', '0', '0', '0', '0',
 									 '0', '0', '0', '0', '0', '0', '0', '0'};
 		assertTrue("Fail: empty bit string did not match expected value.", 
 						Arrays.equals(this.bitString.getBits(), expectedBitString));
+		assertEquals(expectedBitString.length, this.bitString.getLength());
 	}
 	
 	@Test 
 	public void testConstructorWithArgs() {
-		BitString testString = new BitString(7);
-		char[] expectedBitString = { '0', '0', '0', '0', '0', '0', '0', '0',
+		BitString testString = new BitString(29, 7);
+		char[] expectedBitString = { '0', '0', '0', '0', '0',
 									 '0', '0', '0', '0', '0', '0', '0', '0',
 									 '0', '0', '0', '0', '0', '0', '0', '0',
 									 '0', '0', '0', '0', '0', '1', '1', '1'};
@@ -50,8 +51,9 @@ public class BitStringTests {
 	@Test
 	public void testAdd() {
 		this.bitString.set(257);
-		final BitString theOther = new BitString(139);
+		final BitString theOther = new BitString(32, 139);
 		final BitString resultBitString = this.bitString.add(theOther);
+		
 		char[] expectedBitString = { '0', '0', '0', '0', '0', '0', '0', '0',
 									 '0', '0', '0', '0', '0', '0', '0', '0',
 									 '0', '0', '0', '0', '0', '0', '0', '1',
@@ -76,4 +78,40 @@ public class BitStringTests {
 		assertTrue("Fail: bits were not properly set", 
 					Arrays.equals(this.bitString.getBits(), expectedBitString));
 	}
+	
+	@Test
+	public void testGetLength() {
+		this.bitString = new BitString(1324354657);
+		assertEquals(1324354657, this.bitString.getLength());
+	}
+	
+	@Test
+	public void testGetBits() {
+		char[] expectedBits = {'1', '1', '1'};
+		this.bitString = new BitString(3, 7);
+		assertTrue(Arrays.equals(this.bitString.getBits(), expectedBits));
+	}
+	
+	@Test 
+	public void testFromBits() {
+		char[] expectedBitString = { '0', '0', '0', '0', '0', '0', '0', '0',
+									 '0', '0', '0', '0', '0', '0', '0', '0',
+									 '0', '0', '0', '0', '0', '0', '0', '1',
+									 '1', '0', '0', '0', '1', '1', '0', '0'};
+		this.bitString = BitString.fromBits(expectedBitString.length, expectedBitString);
+		assertTrue(Arrays.equals(this.bitString.getBits(), expectedBitString));
+	}
+	
+	@Test
+	public void testSubString() {
+		char[] expectedBitString = { '0', '0', '0', '0', '0', '0', '0', '0',
+									 '0', '0', '0', '0', '0', '0', '0', '0',
+									 '0', '0', '0', '0', '0', '0', '0', '1',
+									 '1', '0', '0', '0', '1', '1', '0', '0'};
+		char[] expectedSubString = {'0', '0', '1', '1'};
+		this.bitString = BitString.fromBits(expectedBitString.length, expectedBitString);
+		BitString subBitString = this.bitString.subString(21, 24);
+		assertTrue(Arrays.equals(subBitString.getBits(), expectedSubString));
+	}
+	
 }

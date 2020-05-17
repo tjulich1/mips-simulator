@@ -15,10 +15,9 @@
 public class Sim {
 	
 	private static final String[] INSTRUCTIONS = {
-		
-		"00000000 00000000 00000000 00000000",
-		"00000000 00000000 00000000 00000000",
-		"00000000 00000000 00000000 00000000"
+		// op     rs    rt   rd   shamt  funct
+		"000000 00001 00010 00011 00000 100000", // add $1, $2, $3
+		"000000 00011 00000 00000 00000 100000"  // add $3, $0, $0
 	
 	};
 
@@ -29,7 +28,7 @@ public class Sim {
 	* @param String theBits The bits to create a BitString from.
 	**/
 	private static BitString convertToBitString(final String theBits) {
-		return BitString.fromBits(theBits.toCharArray());
+		return BitString.fromBits(32, theBits.toCharArray());
 	}
 	
 	/**
@@ -42,8 +41,12 @@ public class Sim {
 			comp.loadInstruction(convertToBitString(INSTRUCTIONS[i].replaceAll("\\s", "")));
 		}
 		
-		comp.execute();
-		comp.print();
+		BitString test1 = BitString.fromBits(32, "00000000000000000000000000100000".toCharArray());
+		comp.setRegister(1, test1);
+		comp.setRegister(2, test1);
 		
+		comp.execute();
+		
+		comp.print();
 	}
 }
