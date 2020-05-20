@@ -17,12 +17,14 @@ public class MipsComputer {
 	private final BitString ZERO = new BitString(0);
 	
 	private BitString[] registers;
-	
+
 	private BitString[] dataMemory;
 	private BitString[] instructionMemory;
+
+	private BitString programCounter;
 	
 	private int nextInstruction;
-	private int programCounter;
+	
 	
 	/**
 	* Constructor for a new Mips Computer.
@@ -32,7 +34,7 @@ public class MipsComputer {
 		this.instructionMemory = new BitString[MAX_INSTRUCTIONS];
 		this.registers = new BitString[32];
 		this.nextInstruction = 0;
-		this.programCounter = 0;
+		this.programCounter = new BitString(32, 0);
 		for (int i = 0; i < 32; i++) {
 			this.registers[i] = new BitString(WORD_LENGTH);
 		}
@@ -62,8 +64,13 @@ public class MipsComputer {
 	* starting from zero.
 	**/
 	public void execute() {
-		for (int i = 0; i < this.MAX_INSTRUCTIONS; i++) {
-			BitString currentInstruction = this.instructionMemory[i];
+		while (this.programCounter.toDecimal()/4 < this.MAX_INSTRUCTIONS) {
+			if (this.programCounter.toDecimal() % 4 != 0) {
+				System.out.println("Error, program counter not on a word boundary. Unable to read instruction");
+				break;
+			}
+			BitString currentInstruction = this.instructionMemory[this.programCounter.toDecimal()/4];
+			this.programCounter = programCounter.add(new BitString(32, 4));
 			
 			// If there is no instruction loaded, exit execution.
 			if (currentInstruction == null) {
@@ -82,7 +89,6 @@ public class MipsComputer {
 						break;
 				}
 			}
-			
 		}
 	}
 	
@@ -113,6 +119,9 @@ public class MipsComputer {
 			case 32:
 				this.add(theInstruction);
 				break;
+			case 36:
+				this.and(theInstruction);
+				break;
 			default:
 				System.out.println("Unknown instruction");
 				break;
@@ -125,10 +134,10 @@ public class MipsComputer {
 	* Method used to take values from the 2 source registers:
 	* rs: theInstruction[6:10] (inclusive)
 	* rt: theInstruction[11:15] (inclusive)
-	* and write the result to the destination register:
+	* and write the sum to the destination register:
 	* rd: theInstruction[16:20] (inclusive)
 	*
-	* @param theInstruction The add instruction in binary.
+	* @param BitString theInstruction The add instruction in binary.
 	**/
 	private void add(final BitString theInstruction) {
 		int sourceOne = theInstruction.subString(6, 10).toDecimal();
@@ -145,6 +154,60 @@ public class MipsComputer {
 	}
 	
 	/**
+	* Method used to take values from the 2 source registers:
+	* rs: theInstruction[6:10] (inclusive)
+	* rt: theInstruction[11:15] (inclusive)
+	* bitwise and them together, and store the result in:
+	* rd: theInstruction[16:20] (inclusive)
+	*
+	* @param BitString theInstruction The instruction containing
+	* source and destination registers.
+	**/
+	private void and(final BitString theInstruction) {
+		int sourceOne = theInstruction.subString(6, 10).toDecimal();
+		int sourceTwo = theInstruction.subString(11, 15).toDecimal();
+		int dest      = theInstruction.subString(16, 20).toDecimal();
+		
+		if (sourceOne > 31 || sourceTwo > 31 || dest > 31 
+				|| sourceOne < 0 || sourceTwo < 0 || dest < 0) 
+		{
+			System.out.println("Register number out of bounds: " + theInstruction);
+		} else {
+			char[] newBits = new char[32];
+			char[] rsBits = this.registers[sourceOne].getBits();
+			char[] rtBits = this.registers[sourceTwo].getBits();
+			// Loop through both source registers, creating new bit string as 
+			// we go.
+			for (int i = 0; i < 32; i++) {
+				if (rsBits[i] == '1' && rtBits[i] == '1') {
+					newBits[i] = '1';
+				} else {
+					newBits[i] = '0';
+				}
+			}
+			this.registers[dest] = BitString.fromBits(32, newBits);
+		}
+	}
+	
+	/**
+	* Method used to set the PC to the value stored in the 
+	* first source register:
+	* rs: theInstruction[6:10] (inclusive).
+	*
+	* @param BitString theInstruction The instruction containing 
+	* the source register.
+	**/
+	private void jr(final BitString theInstruction) {
+		int sourceRegister = theInstruction.subString(6, 10).toDecimal();
+		
+		if (sourceRegister > 31 || sourceRegister < 0) {
+			System.out.println("Register number out of bounds: " + theInstruction);
+		} else {
+			this.programCounter = BitString.fromBits(32, this.registers[sourceRegister].getBits());
+		}
+	}
+	
+	/**
 	* Method used to reset the computere, initializing all registers, 
 	* memory, IC and PC to zero.
 	**/
@@ -152,7 +215,7 @@ public class MipsComputer {
 		this.dataMemory = new BitString[this.MAX_DATA];
 		this.instructionMemory = new BitString[this.MAX_INSTRUCTIONS];
 		this.nextInstruction = 0;
-		this.programCounter = 0;
+		this.programCounter = new BitString(32, 0);
 		for (final BitString curString : this.registers) {
 			curString.set(0);
 		}

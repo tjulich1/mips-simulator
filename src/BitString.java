@@ -117,6 +117,8 @@ public class BitString {
 		}
 	}
 	
+	
+	
 	/**
 	* Sets the value encoded in this BitString to the given value.
 	*
