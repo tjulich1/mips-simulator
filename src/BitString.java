@@ -34,10 +34,71 @@ public class BitString {
 	public BitString(final int length, final int value) {
 		this.length = length;
 		this.theBits = new char[this.length];
+		
 		for (int i = 0; i < this.length; i++) {
 			this.theBits[i] = '0';
 		}
+		
 		this.set(value);
+	}
+	
+	/**
+	* Method used to create a new bit string by inverting each bit in the
+	* original bit string.
+	*
+	* @param BitString original The original BitString
+	* @return BitString the inverted bitString
+	**/
+	public static BitString invert(final BitString original) {
+		final int oldLength = original.getLength();
+		char[] oldBits = original.getBits();
+		char[] newBits = new char[oldLength];
+		for (int i = 0; i < oldLength; i++) {
+			if (oldBits[i] == '0') {
+				newBits[i] = '1';
+			} else {
+				newBits[i] = '0';
+			}
+		}
+		return BitString.fromBits(newBits.length, newBits);
+	}
+	
+	/**
+	* Method used to extend the original string with either 1's or 0's,
+	* (depending on leading bit) and create new BitString of new length.
+	*
+	* @param BitString originalString The string to sign extend.
+	* @param int newLength The length to extend to.
+	* @return Resulting sign extended bit string, or original string if error occurs.
+	**/
+	public static BitString signExtend(final BitString originalString, final int newLength) {
+		
+		final int oldLength = originalString.getLength();
+		
+		BitString newString;
+		if (oldLength >= newLength) {
+			System.out.println("Unable to extend string of length " + oldLength + 
+									" to length " + newLength);
+			newString = originalString;
+		} else {
+			char[] newBits = new char[newLength];
+			char[] oldBits = originalString.getBits();
+			
+			// If the old string is negative, extend with 1's. 
+			if (oldBits[0] == '1') {
+				Arrays.fill(newBits, '1');
+			} else {
+				Arrays.fill(newBits, '0');
+			}
+			
+			// Copy over old bits.
+			for (int i = oldLength - 1; i > -1; i--) {
+				newBits[newBits.length - (oldLength - i)] = oldBits[i];
+			}
+			
+			newString = BitString.fromBits(newLength, newBits);
+		}
+		return newString;
 	}
 	
 	/**
@@ -56,6 +117,8 @@ public class BitString {
 	public char[] getBits() {
 		return this.theBits;
 	}
+	
+	
 	
 	/**
 	* Method used to create a new BitString from an array of bits.
@@ -117,20 +180,17 @@ public class BitString {
 		}
 	}
 	
-	
-	
 	/**
 	* Sets the value encoded in this BitString to the given value.
 	*
 	* @param int value The value to initialize the BitString to.
 	**/
 	public void set(final int value) {
-		// No range checking if the value will be represented by 32 bits, 
-		// because value is a java integer.
+		// Convert value to binary.
 		final char[] valueInBinary = Integer.toBinaryString(value).toCharArray();
 		
 		// Copy value into bit array
-		for (int i = this.theBits.length-1, j = valueInBinary.length-1; j >= 0; i--, j--) {
+		for (int i = this.theBits.length-1, j = valueInBinary.length-1; (j >= 0 && i >= 0); i--, j--) {
 			this.theBits[i] = valueInBinary[j];
 		}
 	}
@@ -157,15 +217,20 @@ public class BitString {
 		return Integer.parseInt(String.valueOf(this.theBits), 2);
 	}
 	
-	// THIS IS ONLY PRETTY/ACCURATE FOR 32-BIT BITSTRINGS
 	@Override
 	public String toString() {
 		final StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < length/8; i++) {
-			for (int j = i * 8; j < i*8+8; j++) {
-				sb.append(this.theBits[j]);
+		
+		int bitsPlaced = 0;
+		int i = 0;
+		while(i < this.length) {
+			sb.append(this.theBits[i]);
+			bitsPlaced++;
+			i++;
+			if (bitsPlaced == 8) {
+				bitsPlaced = 0;
+				sb.append("  ");
 			}
-			sb.append("  ");
 		}
 		return sb.toString();
 	}

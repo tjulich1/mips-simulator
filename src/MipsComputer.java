@@ -227,9 +227,25 @@ public class MipsComputer {
 	* @param int opCode The opcode of the instruction. 
 	**/
 	private void handleIType(final BitString theInstruction, final int opCode) {
+		
+		// Parse out register information.
+		final int destination = theInstruction.subString(6, 10).toDecimal();
+		final int source = theInstruction.subString(11, 15).toDecimal();
+		final BitString immediate = theInstruction.subString(16, 31);
+		
+		// Check if registers are in bounds.
+		if (source > 31 || source < 0 || destination > 31 || destination < 0) {
+			System.out.println("Invalid register number: " + theInstruction);
+			return;
+		}
+	
+		// Match on which operation the instruction is.
 		switch(opCode) {
 			case 8: 
-				this.addi(theInstruction);
+				this.addi(destination, source, immediate);
+				break;
+			case 12:
+				this.andi(destination, source, immediate);
 				break;
 			default:
 				System.out.println("Invalid I type instruction: " + theInstruction);
@@ -240,20 +256,24 @@ public class MipsComputer {
 	* Method used to add an immediate value to the given register (rs) and write
 	* the result to register (rt).
 	*
-	* @param BitString theInstruction containing:
-	* theInstruction[6:10] (inclusive) : rs 
-	* theInstruction[11:15] (inclusive) : rt 
-	* theInstruction[16:31] (inclusive) : immediate value.
+	* @param int destination The destination register to write the result to.
+	* @param int source The source register to get the first operand from.
+	* @param BitString immediateValue The value in binary to add to the value in source.
 	**/
-	private void addi(final BitString theInstruction) {
-		final int destination = theInstruction.subString(6, 10).toDecimal();
-		final int source = theInstruction.subString(11, 15).toDecimal();
-		if (source < 0 || source > 32 || destination < 0 || destination > 32) {
-			System.out.println("Register number out of bounds in ADDI: " + theInstruction);
-		} else {
-			final BitString immediateValue = theInstruction.subString(16, 31);
-			this.registers[destination] = this.registers[source].add(immediateValue);
-		}
+	private void addi(final int destination, final int source, final BitString immediateValue) {
+		this.registers[destination] = this.registers[source].add(immediateValue);
+	}
+	
+	/**
+	* Method used to bitwise and a sign extended immediate value
+	* with the value in rs, and write the result to rt.
+	*
+	* @param int destination The register to write the result to.
+	* @param int source The source to pull the first operand from.
+	* @param BitString immediateValue The value to add to the value in source.
+	**/
+	private void andi(final int destination, final int source, final BitString immediateValue) {
+		
 	}
 	
 	///////////////////////
