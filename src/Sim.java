@@ -14,13 +14,22 @@
 **/
 public class Sim {
 	
+	/**
+	* Array of instructions which are loaded one by one into the computer.
+	* Note, the white space will all be trimmed out, the only requirement is 
+	* each String in the array contains exactly 32 1's or 0's, and nothing else.
+	* Instructions which are unable to be interpretted will be skipped, and a 
+	* message printed to the console.
+	* 
+	**/
 	private static final String[] INSTRUCTIONS = {
+		// Test R-Format instructions.
 		// op     rs    rt   rd   shamt  funct
-		"000000 00001 00010 00011 00000 100000",  // add $1, $2, $3
-		"000000 00011 00000 00000 00000 100000",  // add $3, $0, $0
-		"000000 00000 00011 00101 00000 100100",  // and $5, $0, $3
-		"000000 00001 00010 00111 00000 100100"   // and $7, $1, $2
+		"000000 00001 00010 00011 00000 100000",  // add $1 + $2 = $3
 	
+		// Test I-Format instructions.
+		// opcode   rs     rt      immediate 
+		"001000    00001 00001 0000 0000 0000 0111" // addi $1 = $1 + 7
 	};
 
 	/**

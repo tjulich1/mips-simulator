@@ -1,3 +1,6 @@
+import java.util.Map;
+import java.util.HashMap;
+
 /**
 * Class representing a simplified Mips computer. Contains 32 registers,
 * a collection of BitStrings representing data memory, as well as a collection of 
@@ -18,12 +21,15 @@ public class MipsComputer {
 	
 	private BitString[] registers;
 
+	//private Map registers;
+
 	private BitString[] dataMemory;
 	private BitString[] instructionMemory;
 
 	private BitString programCounter;
 	
 	private int nextInstruction;
+	
 	
 	
 	/**
@@ -54,8 +60,6 @@ public class MipsComputer {
 		} else {
 			this.instructionMemory[this.nextInstruction] = theInstruction;
 			this.nextInstruction++;
-			//System.out.println("First bits: " + theInstruction.subString(0, 7));
-			//System.out.println("Last bits: " + theInstruction.subString(24, 31));
 		}
 	}
 	
@@ -82,12 +86,10 @@ public class MipsComputer {
 			// Instruction is an R type instruction.
 			if (opCode == 0) {
 				this.handleRType(currentInstruction);
-			} else {
-				switch(opCode) {
-					default:
-						System.out.println("Unknown Opcode");
-						break;
-				}
+			} else if (opCode == 2) {// Only J type instruction currently implemented.
+				System.out.println("DETECTED J INSTRUCTION");
+			} else { // Must be an I type instruction, pass to correct handler.
+				this.handleIType(currentInstruction, opCode);
 			}
 		}
 	}
@@ -106,6 +108,10 @@ public class MipsComputer {
 		}
 	}
 	
+	///////////////////////////
+	/// R-Type Instructions ///
+	///////////////////////////
+
 	/**
 	* Method used to determine the function of the instruction,
 	* and pass to the functions handler.
@@ -126,8 +132,6 @@ public class MipsComputer {
 				System.out.println("Unknown instruction");
 				break;
 		}
-		
-		
 	}
 	
 	/**
@@ -206,6 +210,55 @@ public class MipsComputer {
 			this.programCounter = BitString.fromBits(32, this.registers[sourceRegister].getBits());
 		}
 	}
+	
+	///////////////////////////
+	/// I-Type Instructions ///
+	///////////////////////////
+	
+	/**
+	* Function used to determine opcode of I-Type instruction, and
+	* pass it to correct method.
+	*
+	* @param BitString theInstruction The instruction containing:
+	* theInstruction[0:5] (inclusive) : opcode
+	* theInstruction[6:10] (inclusive) : rs 
+	* theInstruction[11:15] (inclusive) : rt 
+	* theInstruction[16:31] (inclusive) : immediate value
+	* @param int opCode The opcode of the instruction. 
+	**/
+	private void handleIType(final BitString theInstruction, final int opCode) {
+		switch(opCode) {
+			case 8: 
+				this.addi(theInstruction);
+				break;
+			default:
+				System.out.println("Invalid I type instruction: " + theInstruction);
+		}
+	}
+	
+	/**
+	* Method used to add an immediate value to the given register (rs) and write
+	* the result to register (rt).
+	*
+	* @param BitString theInstruction containing:
+	* theInstruction[6:10] (inclusive) : rs 
+	* theInstruction[11:15] (inclusive) : rt 
+	* theInstruction[16:31] (inclusive) : immediate value.
+	**/
+	private void addi(final BitString theInstruction) {
+		final int destination = theInstruction.subString(6, 10).toDecimal();
+		final int source = theInstruction.subString(11, 15).toDecimal();
+		if (source < 0 || source > 32 || destination < 0 || destination > 32) {
+			System.out.println("Register number out of bounds in ADDI: " + theInstruction);
+		} else {
+			final BitString immediateValue = theInstruction.subString(16, 31);
+			this.registers[destination] = this.registers[source].add(immediateValue);
+		}
+	}
+	
+	///////////////////////
+	/// Utility Methods ///
+	///////////////////////
 	
 	/**
 	* Method used to reset the computere, initializing all registers, 
