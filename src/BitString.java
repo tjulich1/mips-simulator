@@ -17,6 +17,8 @@ public class BitString {
 
 	/**
 	* Constructor for new empty bit string (initialized to all zeros).
+	*
+	* @param int length The length of the BitString.
 	**/
 	public BitString(final int length) {
 		this.length = length;
@@ -29,16 +31,22 @@ public class BitString {
 	/**
 	* Constructor for a BitString with the given initial value.
 	*
-	* @param value The value to encode in the BitString.
+	* @param int length The length of the bit string.
+	* @param int value The value to encode in the BitString.
 	**/
 	public BitString(final int length, final int value) {
 		this.length = length;
 		this.theBits = new char[this.length];
 		
-		for (int i = 0; i < this.length; i++) {
-			this.theBits[i] = '0';
+		if (value >= 0) {
+			for (int i = 0; i < this.length; i++) {
+				this.theBits[i] = '0';
+			}
+		} else {
+			for (int i = 0; i < this.length; i++) {
+				this.theBits[i] = '1';
+			}
 		}
-		
 		this.set(value);
 	}
 	
@@ -64,6 +72,31 @@ public class BitString {
 	}
 	
 	/**
+	* Method used create a new BitString my padding another 
+	* BitString. If the BitString parameter is of the same or
+	* lesser length than newLength, the original BitString will
+	* be returned with no additional padding.
+	*
+	* @param BitString string The string to pad.
+	* @param int newLength The length to pad to.
+	* @return BitString The padded bit string or original string.
+	**/
+	public static BitString pad(final BitString string, final int newLength) {
+		if (string.getLength() >= newLength) {
+			//System.out.println("Unable to pad string");
+			return string;
+		} else {
+			char[] newBits = new char[newLength];
+			Arrays.fill(newBits, '0');
+			char[] oldBits = string.getBits();
+			for(int i = oldBits.length - 1; i > -1; i--) {
+				newBits[newBits.length - oldBits.length + i] = oldBits[i];
+			}
+			return BitString.fromBits(newLength, newBits);
+		}
+	}
+	
+	/**
 	* Method used to extend the original string with either 1's or 0's,
 	* (depending on leading bit) and create new BitString of new length.
 	*
@@ -77,8 +110,8 @@ public class BitString {
 		
 		BitString newString;
 		if (oldLength >= newLength) {
-			System.out.println("Unable to extend string of length " + oldLength + 
-									" to length " + newLength);
+			//System.out.println("Unable to extend string of length " + oldLength + 
+			//						" to length " + newLength);
 			newString = originalString;
 		} else {
 			char[] newBits = new char[newLength];
@@ -104,7 +137,7 @@ public class BitString {
 	/**
 	* Method used to get the length of this bit string.
 	*
-	* 
+	* @return The length of the BitString.
 	**/
 	public int getLength() { return this.length; }
 	
@@ -117,8 +150,6 @@ public class BitString {
 	public char[] getBits() {
 		return this.theBits;
 	}
-	
-	
 	
 	/**
 	* Method used to create a new BitString from an array of bits.
@@ -165,8 +196,6 @@ public class BitString {
 	public void setBits(final char[] bits) {
 		if (bits.length != this.length) {
 			System.out.println("Unable to set bits: given char array is of invalid size");
-			System.out.println(bits);
-			System.out.println(length);
 		} else {
 			for (int i = 0; i < this.length; i++) {
 				char currentBit = bits[i];
@@ -174,10 +203,25 @@ public class BitString {
 					this.theBits[i] = currentBit;
 				} else {
 					System.out.println("Unable to set bits: chars must be only '0' or '1'");
+					System.out.println(Arrays.toString(bits));
 					return;
 				}
 			}
 		}
+	}
+	
+	/**
+	* Check to see if this instruction is a null instruction (all zeroes).
+	*
+	* @return True if all zero, false if not.
+	**/
+	public boolean isNull() {
+		for (int i = 0; i < this.length; i++) {
+			if (this.theBits[i] == '1') {
+				return false;
+			}
+		}
+		return true;
 	}
 	
 	/**
@@ -203,8 +247,39 @@ public class BitString {
 	* @return New BitString encoded with the sum of the 2 others.
 	**/
 	public BitString add(final BitString theOther) {
-		final int valueToEncode = this.toDecimal() + theOther.toDecimal();
-		return new BitString(32, valueToEncode);
+		
+		char[] firstBits = BitString.signExtend(this, 32).getBits();
+		char[] secondBits = BitString.signExtend(theOther, 32).getBits();
+		char[] resultBits = new char[32];
+		
+		char carryBit = '0';
+		
+		for(int i = 31; i > -1; i--) {
+			if (firstBits[i] == '1' && secondBits[i] == '0' ||
+					firstBits[i] == '0' && secondBits[i] == '1') {
+				if (carryBit == '1') {
+					resultBits[i] = '0';
+				} else {
+					resultBits[i] = '1';
+				}
+			} else if (firstBits[i] == '0' && secondBits[i] == '0') {
+				if (carryBit == '1') {
+					resultBits[i] = '1';
+					carryBit = '0';
+				} else {
+					resultBits[i] = '0';
+				}
+			} else if (firstBits[i] == '1' && secondBits[i] == '1') {
+				if (carryBit == '1') {
+					resultBits[i] = '1';
+				} else {
+					resultBits[i] = '0';
+					carryBit = '1';
+				}
+			}
+		}
+		
+		return BitString.fromBits(32, resultBits);
 	}
 	
 	/**
@@ -215,6 +290,30 @@ public class BitString {
 	**/
 	public int toDecimal() {
 		return Integer.parseInt(String.valueOf(this.theBits), 2);
+	}
+	
+	/**
+	*
+	**/
+	public BitString twosComp(final BitString originalBitString) {
+		
+		char[] newBits = new char[originalBitString.getLength()];
+		
+		boolean firstSetBit = false;
+		for (int i = originalBitString.getLength() - 1; i > -1; i--) {
+			// This is the first '1' we have found.
+			if (this.theBits[i] == '1' && !firstSetBit) {
+				firstSetBit = true;
+			// We have already found the first set bit, flip everything else.
+			} else if (firstSetBit) {
+				if (this.theBits[i] == '1') {
+					newBits[i] = '0';
+				} else {
+					newBits[i] = '1';
+				}
+			}
+		}
+		return BitString.fromBits(newBits.length, newBits);
 	}
 	
 	@Override
@@ -233,6 +332,12 @@ public class BitString {
 			}
 		}
 		return sb.toString();
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		return (o == this) || (!(o instanceof BitString)) ||
+					Arrays.equals(((BitString)o).getBits(), this.theBits);
 	}
 
 }

@@ -1,6 +1,6 @@
 import java.util.Map;
-import java.util.HashMap;
-
+import java.util.LinkedHashMap;
+import java.util.Arrays;
 /**
 * Class representing a simplified Mips computer. Contains 32 registers,
 * a collection of BitStrings representing data memory, as well as a collection of 
@@ -14,7 +14,6 @@ import java.util.HashMap;
 public class MipsComputer {
 	
 	private static final int MAX_INSTRUCTIONS = 200;
-	private static final int MAX_DATA = 500;
 	private static final int WORD_LENGTH = 32;
 	
 	private final BitString ZERO = new BitString(0);
@@ -23,20 +22,19 @@ public class MipsComputer {
 
 	//private Map registers;
 
-	private BitString[] dataMemory;
+	private Map<String, BitString> dataMemory;
 	private BitString[] instructionMemory;
 
 	private BitString programCounter;
 	
 	private int nextInstruction;
 	
-	
-	
 	/**
 	* Constructor for a new Mips Computer.
 	**/
 	public MipsComputer() {
-		this.dataMemory = new BitString[MAX_DATA];
+		this.dataMemory = new LinkedHashMap<>();
+		this.initializeDataMemory();
 		this.instructionMemory = new BitString[MAX_INSTRUCTIONS];
 		this.registers = new BitString[32];
 		this.nextInstruction = 0;
@@ -78,7 +76,7 @@ public class MipsComputer {
 			
 			// If there is no instruction loaded, exit execution.
 			if (currentInstruction == null) {
-				break;
+				return;
 			}
 			BitString opCodeSubString = currentInstruction.subString(0, 5);
 			int opCode = opCodeSubString.toDecimal();
@@ -87,7 +85,7 @@ public class MipsComputer {
 			if (opCode == 0) {
 				this.handleRType(currentInstruction);
 			} else if (opCode == 2) {// Only J type instruction currently implemented.
-				System.out.println("DETECTED J INSTRUCTION");
+				this.jump(currentInstruction);
 			} else { // Must be an I type instruction, pass to correct handler.
 				this.handleIType(currentInstruction, opCode);
 			}
@@ -121,15 +119,23 @@ public class MipsComputer {
 	public void handleRType(final BitString theInstruction) {
 		final BitString theFuncCodeSubString = theInstruction.subString(26, 31);
 		final int theFuncCode = theFuncCodeSubString.toDecimal();
+		
 		switch(theFuncCode) {
+			// Add case
 			case 32:
 				this.add(theInstruction);
 				break;
+			// And case
 			case 36:
 				this.and(theInstruction);
 				break;
+			// JR case
+			case 8:
+				this.jr(theInstruction);
+				break;
+			// Other
 			default:
-				System.out.println("Unknown instruction");
+				System.out.println("Unknown instruction: " + theInstruction);
 				break;
 		}
 	}
@@ -229,8 +235,8 @@ public class MipsComputer {
 	private void handleIType(final BitString theInstruction, final int opCode) {
 		
 		// Parse out register information.
-		final int destination = theInstruction.subString(6, 10).toDecimal();
-		final int source = theInstruction.subString(11, 15).toDecimal();
+		final int destination = theInstruction.subString(11, 15).toDecimal();
+		final int source = theInstruction.subString(6, 10).toDecimal();
 		final BitString immediate = theInstruction.subString(16, 31);
 		
 		// Check if registers are in bounds.
@@ -241,11 +247,22 @@ public class MipsComputer {
 	
 		// Match on which operation the instruction is.
 		switch(opCode) {
+			// Addi case
 			case 8: 
 				this.addi(destination, source, immediate);
 				break;
+			// Andi case	
 			case 12:
 				this.andi(destination, source, immediate);
+				break;
+			case 35:
+				this.lw(destination, source, immediate);
+				break;
+			case 43:
+				this.sw(destination, source, immediate);
+				break;
+			case 4:
+				this.beq(destination, source, immediate);
 				break;
 			default:
 				System.out.println("Invalid I type instruction: " + theInstruction);
@@ -261,7 +278,7 @@ public class MipsComputer {
 	* @param BitString immediateValue The value in binary to add to the value in source.
 	**/
 	private void addi(final int destination, final int source, final BitString immediateValue) {
-		this.registers[destination] = this.registers[source].add(immediateValue);
+		this.registers[destination] = this.registers[source].add(BitString.signExtend(immediateValue, 32));
 	}
 	
 	/**
@@ -273,7 +290,103 @@ public class MipsComputer {
 	* @param BitString immediateValue The value to add to the value in source.
 	**/
 	private void andi(final int destination, final int source, final BitString immediateValue) {
+		char[] sourceBits = this.registers[source].getBits();
+		char[] immBits = BitString.signExtend(immediateValue, 32).getBits();
 		
+		char[] resultBits = new char[32];
+		for (int i = 0; i < 32; i++) {
+			if (sourceBits[i] == '1' && immBits[i] == '1') {
+				resultBits[i] = '1';
+			} else {
+				resultBits[i] = '0';
+			}
+		}
+		this.registers[destination] = BitString.fromBits(32, resultBits);
+	}
+	
+	/**
+	* Method used to load a 32 bit word from data memory (between address 0 
+	* and 499 inclusive) into the destination register.
+	*
+	* @param int destination The register to load the word to.
+	* @param int source The register containing the base address.
+	* @param BitString immediateValue The address offset.
+	**/
+	private void lw(final int destination, final int source, final BitString immediateValue) {
+		BitString offset = BitString.signExtend(immediateValue, 32);
+		BitString base = this.registers[source];
+		String address = Arrays.toString(base.add(offset).getBits());
+		
+		//System.out.println("Base: " + base);
+		//System.out.println("Offset: " + offset);
+		//System.out.println("Address: " + address);
+		
+		if (this.dataMemory.containsKey(address)) {
+			this.registers[destination] = BitString.fromBits(32, dataMemory.get(address).getBits());
+		} else {
+			System.out.println("LW address outside address space");
+		}
+		
+	}
+	
+	/**
+	* Method used to store a word from the given register into memory
+	* at the location calculated by reg[source] + immediateValue.
+	*
+	* @param int registerWithWord The number of the register with the word to store.
+	* @param int source The number of the register with the base address of where to store.
+	* @param BitString immediateValue The offset for calculating the address.
+	**/
+	private void sw(final int registerWithWord, final int source, final BitString immediateValue) {
+		BitString offset = BitString.signExtend(immediateValue, 32);
+		BitString base = this.registers[source];
+		String address = Arrays.toString(base.add(offset).getBits());
+		
+		if (this.dataMemory.containsKey(address)) {
+			dataMemory.put(address, BitString.fromBits(32, this.registers[registerWithWord].getBits()));
+		} else {
+			System.out.println("SW address outside address space");
+		}
+	}
+	
+	/**
+	* Method used to branch to a given offset if the values in the two source
+	* registers are equal.
+	*
+	* @param int firstRegister The number of the first source register.
+	* @param int secondRegister The number of the second source register.
+	* @param BitString jumpOffset The offset to add to the PC.
+	**/
+	private void beq(final int firstRegister, final int secondRegister, final BitString jumpOffset) {
+		// Check if the BitString's in the registers are equal.
+		if (this.registers[firstRegister].equals(this.registers[secondRegister])) {
+			// Sign extend immediate value.
+			BitString extendedOffset = BitString.signExtend(jumpOffset, 32);
+			this.programCounter = this.programCounter.add(extendedOffset);
+		}
+	}
+	
+	///////////////////////////
+	/// J-Type Instructions ///
+	///////////////////////////
+	
+	/**
+	* Method used to unconditionally set the program counter to the jump
+	* address.
+	* 
+	* @param BitString theInstruction The jump instruction.
+	**/
+	private void jump(final BitString theInstruction) {
+		BitString address = theInstruction.subString(6, 31);
+		int addressValue = address.toDecimal();
+		
+		// Check if address is inside of instruction memory.
+		if (addressValue < 0 || addressValue > 200) {
+			System.out.println("Unable to perform jump, invalid address");
+		} else {
+			// Add zero's infront of address to match 32 bits.
+			this.programCounter = BitString.pad(address, 32);
+		}
 	}
 	
 	///////////////////////
@@ -285,12 +398,26 @@ public class MipsComputer {
 	* memory, IC and PC to zero.
 	**/
 	public void reset() {
-		this.dataMemory = new BitString[this.MAX_DATA];
+		this.dataMemory = new LinkedHashMap<>();
+		this.initializeDataMemory();
 		this.instructionMemory = new BitString[this.MAX_INSTRUCTIONS];
 		this.nextInstruction = 0;
 		this.programCounter = new BitString(32, 0);
 		for (final BitString curString : this.registers) {
 			curString.set(0);
+		}
+	}
+	
+	/**
+	* Method used to set up the hash map which represents the data memory.
+	* In the map, each key is an address between 0 and 499 in binary (as a string), mapping
+	* to another bitstring representing the value stored there. I used a map 
+	* to make error checking easier, as all I need to do is check if the key 
+	* (address) exists.
+	**/
+	private void initializeDataMemory() {
+		for (int i = 0; i < 500; i++) {
+			this.dataMemory.put(Arrays.toString(new BitString(32, i).getBits()), new BitString(32, 0));
 		}
 	}
 	

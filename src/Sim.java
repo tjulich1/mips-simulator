@@ -1,3 +1,6 @@
+import java.io.File;
+import java.util.Scanner;
+import java.io.IOException;
 /**
 * Simulator class used to load and execute a program using 
 * the MipsComputer class.
@@ -23,14 +26,24 @@ public class Sim {
 	* 
 	**/
 	private static final String[] INSTRUCTIONS = {
-		// Test R-Format instructions.
-		// op     rs    rt   rd   shamt  funct
-		"000000 00001 00010 00011 00000 100000",  // add $1 + $2 = $3
+		// R-Format instruction
+		//   op    rs    rt    rd   shamt funct
+		//"000000 00000 00010 00000 00000 001000",
 	
-		// Test I-Format instructions.
-		// opcode   rs     rt      immediate 
-		"001000    00001 00001 0000 0000 0000 0111" // addi $1 = $1 + 7
+		// I-Format instruction
+		// opcode   rs     rt          immediate
+		//"001000  00000  00000   0000 0000 0000 0001",
+	
+		//"001000  00000  00000   0000 0000 0000 0111",
+		//"101011  00000  00000   0000 0000 0000 0000",
+		//"100011  00000  00111   0000 0000 0000 0000",
+		  "00100000001000010000000001100100"
 	};
+
+	/**
+	* Relative path to the input file, if it exists.
+	**/
+	private static final String filePath = "../input/instructions.txt";
 
 	/**
 	* Method used to convert Strings to BitStrings, in order to 
@@ -46,18 +59,50 @@ public class Sim {
 	* Entry point into the program.
 	**/
 	public static void main(String... strings) {
+		
 		final MipsComputer comp = new MipsComputer();
 		
+		File f = new File(filePath);
+		if (f.exists() && !f.isDirectory()) {
+			readInstructionsFromFile(f, comp);
+		} else {
+			readInstructionsFromArray(comp);
+		}
+		
+		comp.execute();
+		comp.print();
+	}
+	
+	/**
+	* Method used to load computer with instructions that are found in 
+	* the given file. 
+	*
+	* @param File file The file to read instructions from.
+	* @param MipsComputer comp The computer to load the instructions into.
+	**/
+	public static void readInstructionsFromFile(final File file, final MipsComputer comp) {
+		System.out.println("Loading instructions from file...");
+		final Scanner s;
+		try {
+			s = new Scanner(file);
+			while(s.hasNextLine()){
+				comp.loadInstruction(convertToBitString(s.nextLine().replaceAll("\\s", "")));
+			}
+		} catch (final IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	* Method used to load computer with instructions that are found in the 
+	* static array found above.
+	*
+	* @param MipsComputer comp The computer to load with the instructions.
+	**/
+	public static void readInstructionsFromArray(final MipsComputer comp) {
+		System.out.println("Loading instructions from array...");
 		for (int i = 0; i < INSTRUCTIONS.length; i++) {
 			comp.loadInstruction(convertToBitString(INSTRUCTIONS[i].replaceAll("\\s", "")));
 		}
-		
-		BitString test1 = BitString.fromBits(32, "00000000000000000000000000100000".toCharArray());
-		comp.setRegister(1, test1);
-		comp.setRegister(2, test1);
-		
-		comp.execute();
-		
-		comp.print();
 	}
 }
