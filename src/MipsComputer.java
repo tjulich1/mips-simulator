@@ -13,20 +13,45 @@ import java.util.Arrays;
 **/
 public class MipsComputer {
 	
+	/**
+	* Constants.
+	**/
 	private static final int MAX_INSTRUCTIONS = 200;
-	private static final int WORD_LENGTH = 32;
+	private static final int MAX_DATA 		  = 500;
 	
-	private final BitString ZERO = new BitString(0);
-	
+	/**
+	* Store registers just in an array, because although MIPS
+	* assigns alias's to the registers, on the binary level, they 
+	* are accessed by their number (0-31).
+	**/
 	private BitString[] registers;
 
-	//private Map registers;
-
+	/**
+	* Flag that is used to adjust memory offsets in jump instructions
+	* when the instructions are read in from Mars.
+	**/
+	private boolean fromMars;
+	
+	/**
+	* Memory used to store words. Maps BitStrings encoded with the values 
+	* 0-499 to empty bit strings, which can be used to store values.
+	**/
 	private Map<String, BitString> dataMemory;
+	
+	/**
+	* An array of BitString's used to store instructions in the order they are loaded.
+	**/
 	private BitString[] instructionMemory;
 
+	/**
+	* BitString encoded with the address of the next instruction to fetch.
+	**/
 	private BitString programCounter;
 	
+	/**
+	* Counter used to ensure instructions are not added past the 
+	* maximum.
+	**/
 	private int nextInstruction;
 	
 	/**
@@ -34,13 +59,14 @@ public class MipsComputer {
 	**/
 	public MipsComputer() {
 		this.dataMemory = new LinkedHashMap<>();
+		this.fromMars = false;
 		this.initializeDataMemory();
 		this.instructionMemory = new BitString[MAX_INSTRUCTIONS];
 		this.registers = new BitString[32];
 		this.nextInstruction = 0;
 		this.programCounter = new BitString(32, 0);
 		for (int i = 0; i < 32; i++) {
-			this.registers[i] = new BitString(WORD_LENGTH);
+			this.registers[i] = new BitString(32);
 		}
 	}
 	
@@ -66,11 +92,17 @@ public class MipsComputer {
 	* starting from zero.
 	**/
 	public void execute() {
+		
+		// Start at instruction 0 and go until either a null instruction is 
+		// encountered, or until programCounter/4 > max instructions (200).
 		while (this.programCounter.toDecimal()/4 < this.MAX_INSTRUCTIONS) {
+			
+			// Ensure that the program counter is aligned.
 			if (this.programCounter.toDecimal() % 4 != 0) {
 				System.out.println("Error, program counter not on a word boundary. Unable to read instruction");
 				break;
 			}
+			
 			BitString currentInstruction = this.instructionMemory[this.programCounter.toDecimal()/4];
 			this.programCounter = programCounter.add(new BitString(32, 4));
 			
@@ -78,6 +110,8 @@ public class MipsComputer {
 			if (currentInstruction == null) {
 				return;
 			}
+			
+			// Parse out the op code.
 			BitString opCodeSubString = currentInstruction.subString(0, 5);
 			int opCode = opCodeSubString.toDecimal();
 			
@@ -89,7 +123,9 @@ public class MipsComputer {
 			} else { // Must be an I type instruction, pass to correct handler.
 				this.handleIType(currentInstruction, opCode);
 			}
+			
 		}
+		
 	}
 	
 	/**
@@ -360,8 +396,9 @@ public class MipsComputer {
 	private void beq(final int firstRegister, final int secondRegister, final BitString jumpOffset) {
 		// Check if the BitString's in the registers are equal.
 		if (this.registers[firstRegister].equals(this.registers[secondRegister])) {
+			int jumpValue = jumpOffset.toDecimal();
 			// Sign extend immediate value.
-			BitString extendedOffset = BitString.signExtend(jumpOffset, 32);
+			BitString extendedOffset = new BitString(32, jumpValue*4);
 			this.programCounter = this.programCounter.add(extendedOffset);
 		}
 	}
@@ -379,13 +416,20 @@ public class MipsComputer {
 	private void jump(final BitString theInstruction) {
 		BitString address = theInstruction.subString(6, 31);
 		int addressValue = address.toDecimal();
+		if (fromMars) {
+			addressValue -= 4194304/4;
+		}
 		
 		// Check if address is inside of instruction memory.
 		if (addressValue < 0 || addressValue > 200) {
 			System.out.println("Unable to perform jump, invalid address");
 		} else {
-			// Add zero's infront of address to match 32 bits.
-			this.programCounter = BitString.pad(address, 32);
+			if (fromMars) {
+				this.programCounter = new BitString(32, addressValue*4);
+			} else {
+				// Add zero's infront of address to match 32 bits.
+				this.programCounter = BitString.pad(address, 32);
+			}	
 		}
 	}
 	
@@ -452,4 +496,14 @@ public class MipsComputer {
 		}
 	}
 	
+	/**
+	* Method used to update whether jump instructions should be 
+	* adjusted to compensate for differences in addressing between this 
+	* simulator and M.A.R.S.
+	*
+	* @param boolean flag The value to update the flag to.
+	**/
+	public void setFromMars(final boolean flag) {
+		this.fromMars = flag;
+	}
 }

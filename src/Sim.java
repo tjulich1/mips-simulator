@@ -64,8 +64,10 @@ public class Sim {
 		
 		File f = new File(filePath);
 		if (f.exists() && !f.isDirectory()) {
+			comp.setFromMars(true);
 			readInstructionsFromFile(f, comp);
 		} else {
+			comp.setFromMars(false);
 			readInstructionsFromArray(comp);
 		}
 		

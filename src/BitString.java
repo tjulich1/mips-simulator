@@ -178,7 +178,7 @@ public class BitString {
 		//System.out.println("End: " + end);
 		//System.out.println("Length: " + length);
 		if (start < 0 || end >= this.length || end < start) {
-			System.out.println("Unable to create substring using indices given");
+			//System.out.println("Unable to create substring using indices given");
 			return new BitString(0);
 		}
 		char[] newBits = new char[end-start+1];
@@ -292,29 +292,6 @@ public class BitString {
 		return Integer.parseInt(String.valueOf(this.theBits), 2);
 	}
 	
-	/**
-	*
-	**/
-	public BitString twosComp(final BitString originalBitString) {
-		
-		char[] newBits = new char[originalBitString.getLength()];
-		
-		boolean firstSetBit = false;
-		for (int i = originalBitString.getLength() - 1; i > -1; i--) {
-			// This is the first '1' we have found.
-			if (this.theBits[i] == '1' && !firstSetBit) {
-				firstSetBit = true;
-			// We have already found the first set bit, flip everything else.
-			} else if (firstSetBit) {
-				if (this.theBits[i] == '1') {
-					newBits[i] = '0';
-				} else {
-					newBits[i] = '1';
-				}
-			}
-		}
-		return BitString.fromBits(newBits.length, newBits);
-	}
 	
 	@Override
 	public String toString() {

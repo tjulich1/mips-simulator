@@ -163,6 +163,15 @@ public class BitStringTests {
 	}
 	
 	/**
+	* Test of substring if the start > end. (should return empty bitString).
+	**/
+	@Test 
+	public void testSubStringTwo() {
+		BitString resultString = this.bitString.subString(3, 1);
+		assertTrue(resultString.getLength() == 0);
+	}
+	
+	/**
 	* Test of the pad method, used to append zeros onto the left side of the 
 	* given bit string, until it is the desired length.
 	**/
@@ -199,8 +208,76 @@ public class BitStringTests {
 	public void testSignExtendPositive() {
 		this.bitString = new BitString(4, 2);
 		char[] expectedBits = { '0', '0', '0', '0', '0', '0', '1', '0' };
-		//final BitString extendString = BitString.signExtend(this.bitString, expectedBits.length);
-		//char[] realBits = extendString.getBits();
-		//assertTrue(Arrays.equals(expectedBits, realBits));
+		final BitString extendString = BitString.signExtend(this.bitString, expectedBits.length);
+		char[] realBits = extendString.getBits();
+		assertTrue(Arrays.equals(expectedBits, realBits));
 	}
+	
+	/**
+	* Test of the signExtend method when the original string 
+	* is negative.
+	**/
+	@Test 
+	public void testSignExtendNegative() {
+		this.bitString = new BitString(4, -7);
+		char[] expectedOutput = { '1', '1', '1', '1', '1', '1', '1', '0', '0', '1'};
+		BitString extendedString = BitString.signExtend(this.bitString, 10);
+		assertTrue(Arrays.equals(expectedOutput, extendedString.getBits()));
+	}
+
+	/**
+	* Test of the sign extend method, to ensure that if a length
+	* less than or equal to the original sting length is passed in, 
+	* nothing is changed.
+	**/
+	@Test 
+	public void testSignExtendFail() {
+		this.bitString = new BitString(3, 7);
+		final BitString failString = BitString.signExtend(this.bitString, 3);
+		assertTrue(Arrays.equals(bitString.getBits(), failString.getBits()));
+	}
+
+	/**
+	* First test of the invert bits method.
+	**/
+	@Test 
+	public void testInvertOne() {
+		char[] beforeBits = {'1', '0', '1', '0', '1'};
+		char[] afterBits = {'0', '1', '0', '1', '0'};
+		
+		this.bitString = BitString.invert(BitString.fromBits(5, beforeBits));
+		assertTrue(Arrays.equals(this.bitString.getBits(), afterBits));
+	}
+
+	/**
+	* Test two of the invert method.
+	**/
+	@Test 
+	public void testInvertTwo() {
+		char[] oldBits = {'0', '0', '0', '0', '1', '1', '1', '1'};
+		char[] newBits = {'1', '1', '1', '1', '0', '0', '0', '0'};
+		this.bitString = BitString.invert(BitString.fromBits(8, oldBits));
+		assertTrue(Arrays.equals(newBits, this.bitString.getBits()));
+	}
+
+	/**
+	* Tests the isNull method, used to check if the program 
+	* should end with the current instruction.
+	**/
+	@Test 
+	public void testIsNull() {
+		this.bitString = new BitString(3);
+		assertTrue(this.bitString.isNull());
+	}
+
+	/**
+	* Tests the isNull method, used to make sure it returns 
+	* false for non null instructions.
+	**/
+	@Test 
+	public void testIsNullFail() {
+		this.bitString = new BitString(3, 1);
+		assertTrue(!this.bitString.isNull());
+	}
+
 }
