@@ -1,0 +1,99 @@
+Trent Julich ~ Mips Simulator ~ 5/21/2020
+
+/////////
+STRUCTURE
+/////////
+
+This README file should be located in the root directory of the simulator files.
+In this directory should be the directories:
+- bin
+- input 
+- lib 
+- src
+- test
+
+"test" contains the JUNIT4 tests that I wrote for BitStrings.java (version I wrote from scratch)
+as well as tests for MipsComputer.java, which tests each of the desired mips instructions, as 
+well as some utility methods.
+
+"lib" contains the Junit jar files, as well as some dependencies I needed in order to run my tests 
+from the command line. Figured I would leave the project how I had it when developing it.
+
+"input" should contain a single file named "instructions.txt". If this file is deleted, the simulator
+will attempt to load instructions from default internal array of instructions. If the file is present, 
+32 bit instructions (1 per line) will be loaded into the simulator. 
+
+"bin" contains the binaries that were created on my Windows 10 machine, may or may not run properly on 
+your machine. This folder also contains the compiled JUnit tests.
+
+"src" source files for the main simulator program.
+
+//////////
+HOW TO RUN
+//////////
+
+EASY WAY 
+1) Create mips program in MARS simulator, being careful to only use instructions supported by this 
+simulator (the ones on the homework sheet)
+2) Dump compiled program into a binary text file, overwrite the file "input/instructions.txt"
+3) Compile binaries, and place them in "bin" directory. 
+4) Run "Sim" class which contains the main driver function. All instructions from file will load into 
+   the simulator, and the program executed. 
+5) The simulator then prints all registers, and the loaded instructions to the console.
+
+ANNOYING WAY
+1) Open "Sim.java". Located at the top of the class is a static string array called INSTRUCTIONS.
+2) Hard code binary instructions using '1' and '0' characters, making sure they are 32 bits long. 
+   White space is allowed in the strings.
+3) Compile binaries. The location of the binaries no longer matters, as long as "Sim.class", 
+   "BitString.class" and "MipsComputer.class" are together in the same directory.
+4) Run "Sim.class" which contains the main driver function. All instructions from the string array 
+   are loaded into the simulator and the program is executed.
+5) The simulator then prints all registers, and the loaded instructions to the console.
+
+WHETHER MENAKA OR A GRADER GRADES THIS, IF YOU RUN INTO ANY ISSUES, YOU CAN EMAIL ME AT 
+tjulich1@gmail.com
+
+//////////////////////
+IMPLEMENTATION CHOICES
+//////////////////////
+
+- Register representation: I chose to represent the registers as a simple array of BitStrings
+  (length 32 strings, 32 registers). Although the instructions stated to differentiate between 
+  the types of registers, I chose my approach for 2 reasons. 
+	1) The instructions that are loaded into the simulator are in binary, and as such, each 
+	   source / destination register is denoted by a number 0-31, not by an alias.
+	2) If I programmed using these register alias's instead of just their numbers, there would be 
+	   many redundant conversions from the parsed binary register number, converting to the "register alias", 
+	   and then needing to refer to each register by a unique name in functions, instead of just their number.
+	   
+   I was beginning to attempt to implement the registers as a map, but I needed to begin work on another
+   project. I figured a map might give a decent way to map a register alias to a value, although there 
+   still needs to me some conversion from the binary register number, to the alias, and then map to the value,
+   which seems much more complicated than just sticking to register numbers.
+   
+- Instruction handlers: I chose to first determine the type of instruction using the opcode. For each of the 3
+  instruction types, there was an individual handler that the instruction was then passed to. (jump has its own 
+  handler just because it was the only j type instruction). In these next handlers, sources registers, func codes, 
+  destination registers, etc are parsed out, and these parameters are finally passed into the individual instruction
+  handlers.
+   
+- Command Line UI: I chose a command line interface because I have been trying to get more experience with 
+  creating tools for the command line, so I used this project as a way to practice trying to format output to 
+  look a bit better / more readable.
+  
+- Instruction memory array: I chose to store the instructions in an array, because it mirrors how a real mips 
+  computer would work, with the instructions loaded into memory and then accessed in sequntial order. An array 
+  also offers fast access to indexed elements, making it quick for getting instructions after jump or branch 
+  instructions.
+  
+- Data memory array: I chose to store the data in a map because of the way that data memory in sw and lw instructions 
+  is accessed. The memory is accessed by taking a 32 bit word from a register and adding another offset word to form 
+  the final address. I chose to just map the string version of this address instead of worrying about trying to convert 
+  to decimal for an array access. Similar to the register representation, I was thinking of better ways to represent 
+  some of these components, but needed to wrap up the project to begin working on another.
+  
+- File loading: I chose to implement both ways, because when I was initially programming loading the instructions,
+  it was nice to be able to just change the opcode inside of the instruction array. Later on, when I was making 
+  sure some of the more complicated instructions were implemented like stores, loads, etc, it was nice to be 
+  able to write small programs in MARS, and save them to "input/instructions.txt" for easier loading.

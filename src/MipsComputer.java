@@ -16,8 +16,8 @@ public class MipsComputer {
 	/**
 	* Constants.
 	**/
-	private static final int MAX_INSTRUCTIONS = 200;
-	private static final int MAX_DATA 		  = 500;
+	public static final int MAX_INSTRUCTIONS = 200;
+	public static final int MAX_DATA 		 = 500;
 
 	/**
 	* Store registers just in an array, because although MIPS
@@ -104,12 +104,14 @@ public class MipsComputer {
 			}
 
 			BitString currentInstruction = this.instructionMemory[this.programCounter.toDecimal()/4];
-			this.programCounter = programCounter.add(new BitString(32, 4));
-
+			
 			// If there is no instruction loaded, exit execution.
 			if (currentInstruction == null) {
 				return;
 			}
+			
+			// Increment the program counter.
+			this.programCounter = programCounter.add(new BitString(32, 4));
 
 			// Parse out the op code.
 			BitString opCodeSubString = currentInstruction.subString(0, 5);
@@ -367,13 +369,9 @@ public class MipsComputer {
 	* @param BitString immediateValue The address offset.
 	**/
 	private void lw(final int destination, final int source, final BitString immediateValue) {
-		BitString offset = BitString.signExtend(immediateValue, 32);
+		BitString offset = new BitString(32, immediateValue.toDecimal() / 4);
 		BitString base = this.registers[source];
 		String address = Arrays.toString(base.add(offset).getBits());
-
-		//System.out.println("Base: " + base);
-		//System.out.println("Offset: " + offset);
-		//System.out.println("Address: " + address);
 
 		if (this.dataMemory.containsKey(address)) {
 			this.registers[destination] = BitString.fromBits(32, dataMemory.get(address).getBits());
@@ -392,14 +390,14 @@ public class MipsComputer {
 	* @param BitString immediateValue The offset for calculating the address.
 	**/
 	private void sw(final int registerWithWord, final int source, final BitString immediateValue) {
-		BitString offset = BitString.signExtend(immediateValue, 32);
+		BitString offset = new BitString(32, immediateValue.toDecimal() / 4);
 		BitString base = this.registers[source];
 		String address = Arrays.toString(base.add(offset).getBits());
-
+		
 		if (this.dataMemory.containsKey(address)) {
 			dataMemory.put(address, BitString.fromBits(32, this.registers[registerWithWord].getBits()));
 		} else {
-			System.out.println("SW address outside address space");
+			System.out.println("SW address outside address space or not aligned with boundaries.");
 		}
 	}
 
@@ -414,9 +412,11 @@ public class MipsComputer {
 	private void beq(final int firstRegister, final int secondRegister, final BitString jumpOffset) {
 		// Check if the BitString's in the registers are equal.
 		if (this.registers[firstRegister].equals(this.registers[secondRegister])) {
-			int jumpValue = jumpOffset.toDecimal();
+			int jumpValue = jumpOffset.toDecimal() * 4;
 			// Sign extend immediate value.
-			BitString extendedOffset = new BitString(32, jumpValue*4);
+			BitString extendedOffset = new BitString(32, jumpValue);
+			
+			
 			this.programCounter = this.programCounter.add(extendedOffset);
 		}
 	}
@@ -484,6 +484,32 @@ public class MipsComputer {
 	}
 
 	/**
+	* Method used to access the BitString that is stored in data memory 
+	* at the given address. Access is word based, i.e. each index returns 
+	* a full 32 bit word.
+	*
+	* @param int index The index in data memory to access.
+	* @return BitString The value that is stored in data memory.
+	*/ 
+	public BitString getDataMemory(final int index) {
+		if (index < 0 || index > this.MAX_DATA) {
+			System.out.println("Unable to access data memory at index: " + index);
+			return null;
+		} else {
+			return this.dataMemory.get(Arrays.toString((new BitString(32, index)).getBits()));
+		}
+	}
+
+	/**
+	* Getter for the current program counter.
+	*
+	* @return BitString The current program counter.
+	**/
+	public BitString getProgramCounter() {
+		return this.programCounter;
+	}
+
+	/**
 	* Method used to print all registers to the console.
 	**/
 	public void print() {
@@ -523,5 +549,25 @@ public class MipsComputer {
 	**/
 	public void setFromMars(final boolean flag) {
 		this.fromMars = flag;
+	}
+
+	/**
+	* Debug method used to print the first words in date memory.
+	**/
+	public void printDataMem() {
+		for (int i = 0; i < 10; i++) {
+			System.out.println("Data["+i+"] = " + this.getDataMemory(i));
+		}
+	}
+
+	/**
+	* Returns the flag that indicates whether the instructions that were loaded were
+	* from mars, or if they were from the Simulator instruction array.
+	* 
+	* @return Boolean Flag that indicates true = instructions from mars export, or 
+	*  				   false = instructions were loaded from simulator array.
+	**/
+	public boolean getFromMars() {
+		return this.fromMars;
 	}
 }
